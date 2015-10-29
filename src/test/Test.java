@@ -9,5 +9,6 @@ public class Test {
         Maze maze = new Maze();
         maze.setInputFile("input/input.txt");
         maze.consumeInput();
+        maze.printSolvedMaze();
     }
 }
