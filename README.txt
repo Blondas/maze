@@ -1,3 +1,7 @@
+How to run program:
+==================
+Program takes input files as aruments. Sample input file located in /input.
+
 Solving a maze
 ==============
 
