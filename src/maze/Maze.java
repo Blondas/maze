@@ -24,6 +24,25 @@ public class Maze {
     private static final String STRING_PATH = "X";
     private static final String STRING_PASSAGE = " ";
     private static final String STRING_END = "E";
+    private static final String STRING_NO_SOLUTION = "No solution is possible";
+
+
+    public static void main (String [] args) throws IOException {
+        for (int i = 0; i < args.length; i++) {
+//            System.out.println(args[i]);
+            long startTime = System.currentTimeMillis();
+
+            Maze maze = new Maze();
+            maze.setInputFile(args[i]);
+            maze.consumeInput();
+            maze.breadthFirstSearch();
+            maze.printSolvedMaze();
+
+            long endTime   = System.currentTimeMillis();
+            long totalTime = endTime - startTime;
+            System.out.println("total time: " + totalTime + "ms");
+        }
+    }
 
 
     private class Node {
@@ -31,14 +50,13 @@ public class Maze {
         public Node parent;
         public boolean visited;
         public Maze.NodeType type;
-        public Dimension position;
+        public Dimension position = new Dimension();
 
         public Node(NodeType type) {
             this.type = type;
 
             distance = -1;
             parent = null;
-            visited = false;
         }
     }
 
@@ -76,23 +94,26 @@ public class Maze {
     }
 
 
-    public void setStartPoint(String startLine) {
+    private void setStartPoint(String startLine) {
         String[] dimension = startLine.split("\\s+");
-        startPoint = new Dimension( Integer.parseInt(dimension[0]), Integer.parseInt(dimension[1]) );
+        // height x width
+        startPoint = new Dimension( Integer.parseInt(dimension[1]), Integer.parseInt(dimension[0]) );
     }
 
 
-    public void setEndPoint(String endLine) {
+    private void setEndPoint(String endLine) {
         String[] dimension = endLine.split("\\s+");
-        endPoint = new Dimension( Integer.parseInt(dimension[0]), Integer.parseInt(dimension[1]) );
+        // height x width:
+        endPoint = new Dimension( Integer.parseInt(dimension[1]), Integer.parseInt(dimension[0]) );
     }
 
 
-    public void setMazeDimension(String line) {
+    private void setMazeDimension(String line) {
         String[] dimension = line.split("\\s+");
-        mazeDimension = new Dimension( Integer.parseInt(dimension[0]), Integer.parseInt(dimension[1]) );
+        // height x width
+        mazeDimension = new Dimension( Integer.parseInt(dimension[1]), Integer.parseInt(dimension[0]) );
 
-        mazeMatrix = new Node[mazeDimension.width][mazeDimension.height];
+        mazeMatrix = new Node[mazeDimension.height][mazeDimension.width];
     }
 
 
@@ -129,50 +150,77 @@ public class Maze {
 
 
     public void breadthFirstSearch() {
-        Queue<Node> queue = new LinkedList<Node>();
+        Queue<Node> queue = new LinkedList<>();
         Node start = mazeMatrix[startPoint.height][startPoint.width];
 
         start.distance = 0;
         queue.add(start);
 
+        int counter = 0;
         while ( !queue.isEmpty() ) {
+            counter++;
+
             Node currentNode = queue.remove();
 
             List<Node> adjacentNodes = getAdjacentNodes(currentNode);
+
+            adjacentNodes.stream().filter(adjacentNode -> adjacentNode.distance < 0).forEach(adjacentNode -> {
+                adjacentNode.distance = currentNode.distance + 1;
+                adjacentNode.parent = currentNode;
+                queue.add(adjacentNode);
+
+                if (adjacentNode.type == NodeType.NODE_END) {
+                    queue.clear();
+                    setPath();
+                }
+            });
         }
     }
 
 
     private List<Node> getAdjacentNodes(Node node) {
-        List<Node> adjacentNodes = new ArrayList<Node>();
+        List<Node> adjacentNodes = new ArrayList<>();
 
         // get N node
         if (node.position.height > 0) {
-            adjacentNodes.add(mazeMatrix[node.position.height - 1][node.position.width]);
+            Node adjacentNodeN = mazeMatrix[node.position.height - 1][node.position.width];
+            if (adjacentNodeN.type != NodeType.NODE_WALL) {
+                adjacentNodes.add(adjacentNodeN);
+            }
         }
         // get W node
         if (node.position.width < mazeDimension.width - 1) {
-            adjacentNodes.add(mazeMatrix[node.position.height][node.position.width + 1]);
+            Node adjacentNodeW = mazeMatrix[node.position.height][node.position.width + 1];
+            if (adjacentNodeW.type != NodeType.NODE_WALL) {
+                adjacentNodes.add(adjacentNodeW);
+            }
         }
         // get S node
         if (node.position.height < mazeDimension.height - 1) {
-            adjacentNodes.add(mazeMatrix[node.position.height + 1][node.position.width]);
+            Node adjacentNodeS = mazeMatrix[node.position.height + 1][node.position.width];
+            if (adjacentNodeS.type != NodeType.NODE_WALL) {
+                adjacentNodes.add(adjacentNodeS);
+            }
         }
         // get E node
         if (node.position.width > 0) {
-            adjacentNodes.add(mazeMatrix[node.position.height][node.position.width - 1]);
+            Node adjacentNodeE = mazeMatrix[node.position.height][node.position.width - 1];
+            if (adjacentNodeE.type != NodeType.NODE_WALL) {
+                adjacentNodes.add(adjacentNodeE);
+            }
         }
 
         return adjacentNodes;
     }
 
 
-    public void setPath() {
-        Node node = mazeMatrix[endPoint.width][endPoint.height];
+    private void setPath() {
+        Node node = mazeMatrix[endPoint.height][endPoint.width];
 
-        while (node.parent instanceof Node) {
+        while (node.parent.type != NodeType.NODE_START) {
             if (node.parent.type == NodeType.NODE_PASSAGE) {
                 node.parent.type = NodeType.NODE_PATH;
+                node = node.parent;
             }
         }
     }
@@ -208,7 +256,7 @@ public class Maze {
                 System.out.println(line);
             }
         } else {
-            System.out.println("No solution is possible");
+            System.out.println(STRING_NO_SOLUTION);
         }
     }
 }
