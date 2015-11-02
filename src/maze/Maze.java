@@ -13,7 +13,7 @@ public class Maze {
     private Node [][] mazeMatrix;
     private String inputFile;
     private Dimension startPoint, endPoint, mazeDimension;
-    private boolean mazeSolved = false;
+    private boolean mazeSolved;
 
     private enum NodeType {
         NODE_START, NODE_END, NODE_PASSAGE, NODE_PATH, NODE_WALL
@@ -28,29 +28,30 @@ public class Maze {
 
 
     public static void main (String [] args) throws IOException {
-        for (int i = 0; i < args.length; i++) {
-//            System.out.println(args[i]);
+        for (String arg : args) {
             long startTime = System.currentTimeMillis();
 
             Maze maze = new Maze();
-            maze.setInputFile(args[i]);
+            maze.setInputFile(arg);
             maze.consumeInput();
             maze.breadthFirstSearch();
             maze.printSolvedMaze();
 
-            long endTime   = System.currentTimeMillis();
+            long endTime = System.currentTimeMillis();
             long totalTime = endTime - startTime;
             System.out.println("total time: " + totalTime + "ms");
         }
     }
 
 
+    /**
+     * Class which models field in the maze.
+     */
     private class Node {
         public int distance;
         public Node parent;
-        public boolean visited;
         public Maze.NodeType type;
-        public Dimension position = new Dimension();
+        private Dimension position = new Dimension();
 
         public Node(NodeType type) {
             this.type = type;
@@ -58,9 +59,29 @@ public class Maze {
             distance = -1;
             parent = null;
         }
+
+        public void setWidth(int position) {
+            this.position.width = position;
+        }
+
+        public int getWidth() {
+            return this.position.width;
+        }
+
+        public void setHeight(int position) {
+            this.position.height = position;
+        }
+
+        public int getHeight() {
+            return this.position.height;
+        }
     }
 
 
+    /**
+     * Consume input file and process it.
+     * @throws IOException
+     */
     public void consumeInput() throws IOException{
         FileReader fr = new FileReader(inputFile);
         BufferedReader bufr = new BufferedReader(fr);
@@ -94,6 +115,10 @@ public class Maze {
     }
 
 
+    /**
+     * Consume input and set start point coordinates.
+     * @param startLine
+     */
     private void setStartPoint(String startLine) {
         String[] dimension = startLine.split("\\s+");
         // height x width
@@ -101,6 +126,10 @@ public class Maze {
     }
 
 
+    /**
+     *  Consume input and set end point coordinates.
+     * @param endLine
+     */
     private void setEndPoint(String endLine) {
         String[] dimension = endLine.split("\\s+");
         // height x width:
@@ -108,6 +137,10 @@ public class Maze {
     }
 
 
+    /**
+     *  Consume input line and set maze dimension.
+     * @param line
+     */
     private void setMazeDimension(String line) {
         String[] dimension = line.split("\\s+");
         // height x width
@@ -117,6 +150,12 @@ public class Maze {
     }
 
 
+    /**
+     * Consume input line of maze matrix and convert it to nodes.
+     *
+     * @param line
+     * @param matrixLine
+     */
     private void lineToNode(String line, int matrixLine) {
         if (matrixLine < mazeDimension.height) {
             String[] nodesLine = line.split("\\s+");
@@ -141,14 +180,17 @@ public class Maze {
                     }
                 }
 
-                node.position.height = matrixLine;
-                node.position.width = matrixColumn;
+                node.setHeight(matrixLine);
+                node.setWidth(matrixColumn);
                 mazeMatrix[matrixLine][matrixColumn] = node;
             }
         }
     }
 
 
+    /**
+     * Find End node using Breadth First Search Algorithm.
+     */
     public void breadthFirstSearch() {
         Queue<Node> queue = new LinkedList<>();
         Node start = mazeMatrix[startPoint.height][startPoint.width];
@@ -156,10 +198,7 @@ public class Maze {
         start.distance = 0;
         queue.add(start);
 
-        int counter = 0;
         while ( !queue.isEmpty() ) {
-            counter++;
-
             Node currentNode = queue.remove();
 
             List<Node> adjacentNodes = getAdjacentNodes(currentNode);
@@ -171,6 +210,7 @@ public class Maze {
 
                 if (adjacentNode.type == NodeType.NODE_END) {
                     queue.clear();
+                    mazeSolved = true;
                     setPath();
                 }
             });
@@ -178,33 +218,38 @@ public class Maze {
     }
 
 
+    /**
+     *
+     * @param node
+     * @return ArrayList of adjacent nodes
+     */
     private List<Node> getAdjacentNodes(Node node) {
         List<Node> adjacentNodes = new ArrayList<>();
 
         // get N node
-        if (node.position.height > 0) {
-            Node adjacentNodeN = mazeMatrix[node.position.height - 1][node.position.width];
+        if (node.getHeight() > 0) {
+            Node adjacentNodeN = mazeMatrix[node.getHeight() - 1][node.getWidth()];
             if (adjacentNodeN.type != NodeType.NODE_WALL) {
                 adjacentNodes.add(adjacentNodeN);
             }
         }
         // get W node
-        if (node.position.width < mazeDimension.width - 1) {
-            Node adjacentNodeW = mazeMatrix[node.position.height][node.position.width + 1];
+        if (node.getWidth() < mazeDimension.width - 1) {
+            Node adjacentNodeW = mazeMatrix[node.getHeight()][node.getWidth() + 1];
             if (adjacentNodeW.type != NodeType.NODE_WALL) {
                 adjacentNodes.add(adjacentNodeW);
             }
         }
         // get S node
-        if (node.position.height < mazeDimension.height - 1) {
-            Node adjacentNodeS = mazeMatrix[node.position.height + 1][node.position.width];
+        if (node.getHeight() < mazeDimension.height - 1) {
+            Node adjacentNodeS = mazeMatrix[node.getHeight() + 1][node.getWidth()];
             if (adjacentNodeS.type != NodeType.NODE_WALL) {
                 adjacentNodes.add(adjacentNodeS);
             }
         }
         // get E node
-        if (node.position.width > 0) {
-            Node adjacentNodeE = mazeMatrix[node.position.height][node.position.width - 1];
+        if (node.getWidth() > 0) {
+            Node adjacentNodeE = mazeMatrix[node.getHeight()][node.getWidth() - 1];
             if (adjacentNodeE.type != NodeType.NODE_WALL) {
                 adjacentNodes.add(adjacentNodeE);
             }
@@ -226,8 +271,11 @@ public class Maze {
     }
 
 
+    /**
+     * Outputs solution to stdout.
+     */
     public void printSolvedMaze() {
-        if (true || mazeSolved) {
+        if (mazeSolved) {
             for (Node[] nodeLine : mazeMatrix) {
                 String line = "";
 
